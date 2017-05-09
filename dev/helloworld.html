@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>React Todos</title>
+		<script src="build/react.js"></script>
+		<script src="build/react-dom.js"></script>
+		<script src="build/browser.min.js"></script>
+		<style type="text/css">
+			*{
+				margin: 0;
+				padding: 0;
+				box-sizing:border-box;
+				font-family: Arial;
+			}
+			ul,li{
+				list-style: none;
+			}
+			.mainContainer{
+				width: 400px;
+				margin: 50px auto;
+				border-radius: 6px;
+				border: 1px solid #ccc;
+				padding: 10px;
+			}
+			.inputevents{
+				width: 100%;
+				outline: none;
+				border: 1px solid #bbb;
+				padding: 10px 6px;
+				border-radius: 6px;
+				margin-bottom: 10px;
+			}
+			.ifnoevents{
+				width: 100%;
+				border-radius: 6px;
+				border: 1px solid #bbb;
+				margin-bottom: 15px;
+				padding: 10px 6px;
+				color: #000;
+			}
+			.eventsList{
+				width: 100%;
+				border-radius: 6px;
+				border: 1px solid #bbb;
+				margin-bottom: 15px;
+				border-bottom: none;
+			}
+			.eventsList li{
+				width: 100%;
+				padding: 10px 6px;
+				color: #000;
+				border-bottom: 1px solid #bbb;
+				position: relative;
+			}
+			.eventsList li input[type="checkbox"]{
+				margin-right: 5px;
+			}
+			.eventsList li button{
+				display: none;
+				position: absolute;
+				top: 50%;
+				right: 2%;
+				transform: translate(0, -50%);
+				color: #fff;
+			    background-color: #da4f49;
+			    border: 1px solid #bd362f;
+			    padding: 4px 12px;
+			    font-size: 14px;
+			    line-height: 20px;
+			    cursor: pointer;
+			    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+			    border-radius: 4px;
+			}
+			.dodiv{
+				width: 100%;
+				padding: 10px 6px;
+				position: relative;
+			}
+			.dodiv span{
+				display: inline-block;
+				vertical-align: middle;
+				margin-right: 5px;
+			}
+			.dodiv span i{
+				color: red;
+			}
+			.deleteall{
+				color: #fff;
+				padding: 4px 8px;
+				background-color: #ed6140;
+				border-radius: 6px;
+				vertical-align: middle;
+				position: absolute;
+				right: 0%;
+				top: 50%;
+				transform: translate(0%, -50%);
+				cursor: pointer;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="root"></div>
+
+		<script type="text/babel">
+			class InputArea extends React.Component {
+				constructor(props) {
+					super(props);
+					this.handlerKeyUp = this.handlerKeyUp.bind(this);
+				}
+				handlerKeyUp(e) {
+					if(e.keyCode == 13) {
+						let value = e.target.value;
+
+						if(!value) return false;
+
+						let newItem = {
+							text: value,
+							isDone: false
+						}
+
+						e.target.value = '';
+						this.props.addTodo(newItem);
+					}
+				}
+				render() {
+					return (
+						<input type="text" placeholder="请输入你的任务名称，按回车键确认" className="inputevents" onKeyUp={this.handlerKeyUp} />
+					);
+				}
+			}
+
+			class ShowArea extends React.Component {
+				constructor(props) {
+					super(props);
+				}
+				render() {
+					if(this.props.todos.length == 0) {
+						return (
+							<div className="ifnoevents">恭喜您，目前没有待办任务！</div>
+						);
+					}else {
+						return (
+							<ul className="eventsList">
+							{
+								this.props.todos.map((todo, index) => {
+									return <ShowLi text={todo.text} isDone={todo.isDone} index={index} {...this.props} key={todo.text}/>
+								})
+							}
+							</ul>
+						);
+					}
+				}
+			}
+
+			class ShowLi extends React.Component {
+				constructor(props) {
+					super(props);
+					this.handleMouseOver = this.handleMouseOver.bind(this);
+					this.handleMouseOut = this.handleMouseOut.bind(this);
+					this.handleChange = this.handleChange.bind(this);
+					this.handleDelete = this.handleDelete.bind(this);
+				}
+				handleMouseOver() {
+					ReactDOM.findDOMNode(this).style.background = '#eee';
+					ReactDOM.findDOMNode(this.refs.delButton).style.display = 'inline-block';
+				}
+				handleMouseOut() {
+					ReactDOM.findDOMNode(this).style.background = '#fff';
+					ReactDOM.findDOMNode(this.refs.delButton).style.display = 'none';
+				}
+				handleChange() {
+					let isDone = !this.props.isDone;
+					this.props.changeTodoState(this.props.index, isDone);
+				}
+				handleDelete() {
+					this.props.deleteTodo(this.props.index);
+				}
+				render(){
+					return (
+						<li onMouseOver={this.handleMouseOver} onMouseOut={this.handleMouseOut}>
+							<input type="checkbox" checked={this.props.isDone} onChange={this.handleChange} />
+							{this.props.text}
+							<button ref="delButton" onClick={this.handleDelete}>删除</button>
+						</li>
+					);
+				}
+			}
+
+			class DoOperate extends React.Component {
+				constructor(props) {
+					super(props);
+					this.handelSelectAll = this.handelSelectAll.bind(this);
+					this.handelDeleteAll = this.handelDeleteAll.bind(this);
+				}
+				handelSelectAll(e) {
+					this.props.changeTodoState(null, e.target.checked, true);
+				}
+				handelDeleteAll() {
+					this.props.clearDone();
+				}
+				render() {
+					return (
+						<div className="dodiv">
+							<span>
+								<input type="checkbox" className="chooseall" checked={this.props.isAllchecked} onChange={this.handelSelectAll} /> 全选
+							</span>
+							<span>
+								已完成 <i>{this.props.todoDoneCount}</i> / 全部 <i>{this.props.todoCount}</i>
+							</span>
+							<div className="deleteall" onClick={this.handelDeleteAll}>清除已完成任务</div>
+						</div>
+					);
+				}
+			}
+
+			class MainContainer extends React.Component {
+				constructor() {
+					super();
+					this.state = {
+						todos: [],
+						isAllchecked: false
+					};
+					this.addTodo = this.addTodo.bind(this);
+					this.changeTodoState = this.changeTodoState.bind(this);
+					this.deleteTodo = this.deleteTodo.bind(this);
+					this.clearDone = this.clearDone.bind(this);
+				}
+				allChecked() {
+					let isAllchecked = false;
+					if(this.state.todos.every(todo => todo.isDone)) {
+						isAllchecked = true;
+					}
+					this.setState({
+						todos: this.state.todos,
+						isAllchecked: isAllchecked
+					});
+				}
+				addTodo(newItem) {
+					this.state.todos.push(newItem);
+					this.allChecked();
+				}
+				deleteTodo(index) {
+					this.state.todos.splice(index, 1);
+					this.setState({
+						todos: this.state.todos
+					});
+				}
+				clearDone(){
+					let todos = this.state.todos.filter(todo => !todo.isDone);
+					this.setState({
+						todos: todos,
+						isAllchecked: false
+					});
+				}
+				changeTodoState(index, isDone, isChangeAll=false) {
+					if(isChangeAll){
+						this.setState({
+							todos: this.state.todos.map((todo) => {
+								todo.isDone = isDone;
+								return todo;
+							}),
+							isAllchecked: isDone
+						});
+					}else{
+						this.state.todos[index].isDone = isDone;
+						this.allChecked();
+					}
+				}
+				render() {
+					let info = {
+						isAllchecked: this.state.isAllchecked,
+						todoCount: this.state.todos.length || 0,
+						todoDoneCount: (this.state.todos && this.state.todos.filter((todo) => todo.isDone)).length || 0
+					}
+					return (
+						<div className="mainContainer">
+							<InputArea addTodo={this.addTodo} />
+							<ShowArea todos={this.state.todos} changeTodoState={this.changeTodoState} deleteTodo={this.deleteTodo} />
+							<DoOperate {...info} changeTodoState={this.changeTodoState} clearDone={this.clearDone} />
+						</div>
+					);
+				}
+			}
+
+			ReactDOM.render(
+				<MainContainer />,
+				document.getElementById('root')
+			);
+		</script>
+	</body>
+</html>
