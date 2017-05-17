@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>A small game from the official tutorial.</title>
+	<script src="build/react.js"></script>
+	<script src="build/react-dom.js"></script>
+	<script src="build/browser.min.js"></script>
+	<style>
+		*{
+			margin: 0;
+			padding: 0;
+			font-size: 0;
+			box-sizing: border-box;
+		}
+		body{
+			font: 14px "Century Gothic", Futura, sans-serif;
+			width: 100%;
+			text-align: center;
+		}
+		li{
+			list-style-type: decimal;
+		}
+		.game{
+			margin-top: 50px;
+		}
+		.gameleft, .gameright{
+			display: inline-block;
+			vertical-align: top;
+			width: 302px;
+		}
+		.board{
+			width: 100%;
+			border: 1px solid #333;
+		}
+		.colc{
+			width: 100%;
+		}
+		.square{
+			width: 100px;
+			height: 100px;
+			line-height: 100px;
+			text-align: center;
+			border: 1px solid #333;
+			display: inline-block;
+			vertical-align: middle;
+			font-size: 32px;
+			color: #333;
+			font-weight: bold;
+		}
+		.gameright{
+			padding-left: 50px;
+			text-align: left;
+		}
+		.stateDec{
+			width: 100%;
+			display: block;
+			font-size: 18px;
+			color: #333;
+		}
+		.winColor{
+			color: red;
+			font-weight: bold;
+		}
+		.steps{
+			width: 100%;
+			padding-left: 30px;
+			margin-top: 30px;
+		}
+		.steps li{
+			font-size: 14px;
+			color: blue;
+			text-decoration: underline;
+			margin-bottom: 5px;
+			cursor: pointer;
+		}
+	</style>
+</head>
+<body>
+	<div id="root"></div>
+
+	<script type="text/babel">
+	//functional components (for components like that only consist of a render method)
+	function Square(props) {
+		return (
+			<div className="square" onClick={props.onClick}>{props.value}</div>
+		);
+	}
+
+	function Board(props) {
+		return (
+			<div className="board">
+			{
+				[0,1,2].map((v,i) => {
+					return (
+						<div key={v} className="colc">
+						{
+							[0,1,2].map((v,j) => {
+								return (
+									<Square key={i*3+j} value={props.squares[i*3+j]} onClick={ () => props.onClick(i*3+j)} />
+								);
+							})
+						}
+						</div>
+					);
+				})
+			}
+			</div>
+		);
+	}
+
+	class Game extends React.Component {
+		constructor() {
+			super();
+			this.state = {
+				history: [
+					{
+						squares: Array(9).fill(null)
+					}
+				],
+				stepNumber: 0,
+				xIsNext: true
+			}
+		}
+		handleClick(i){
+			const history = this.state.history.slice(0, this.state.stepNumber+1);
+			const current = history[history.length - 1];
+			const squares = current.squares.slice();
+
+			if(judgeWinner(squares) || squares[i]){
+				return;
+			}
+			squares[i] = this.state.xIsNext ? 'X' : 'O';
+
+			this.setState({
+				history: history.concat([{
+					squares: squares
+				}]),
+				stepNumber: history.length,
+				xIsNext: !this.state.xIsNext
+			});
+		}
+		jumpTo(step){
+			this.setState({
+				stepNumber: step,
+				xIsNext: (step % 2) ? false : true
+			});
+		}
+		render(){
+			const history = this.state.history;
+			const current = history[this.state.stepNumber];
+			const winner = judgeWinner(current.squares);
+			const moves = history.map((step, move) => {
+				const desc = move ? 'Move #' + move : 'Game start';
+				return (
+					<li key={move} className="step" onClick={() => this.jumpTo(move)}>{desc}</li>
+				);
+			});
+
+			let status;
+			if(winner){
+				let a, b, c, tempArr;
+				a = winner.a;
+				b = winner.b;
+				c = winner.c;
+				tempArr = document.getElementsByClassName('square');
+				for(let i=0;i<tempArr.length;i++){
+					if(i === a || i ===b || i === c){
+						tempArr[i].style.color = 'red';
+					}
+				}
+				status = "Winner: " + winner.wValue;
+			}else {
+				let allArr;
+				allArr = document.getElementsByClassName('square');
+				if(allArr.length > 0){
+					for(let i=0; i<allArr.length; i++){
+						allArr[i].style.color = '#000';
+					}
+				}
+				status = "Next player: " + (this.state.xIsNext ? 'X' : 'O');
+			}
+			return (
+				<div className="game">
+					<div className="gameleft">
+						<Board squares={current.squares} onClick={(i) => this.handleClick(i)} />
+					</div>
+					<div className="gameright">
+						<div className={winner ? "stateDec winColor" : "stateDec"}>{status}</div>
+						<ul className="steps">
+							{moves}
+						</ul>
+					</div>
+				</div>
+			);
+		}
+	}
+
+	ReactDOM.render(
+		<Game />,
+		document.getElementById('root')
+	);
+
+	function judgeWinner(squares){
+		const winLines = [
+			[0, 1, 2],
+			[3, 4, 5],
+			[6, 7, 8],
+			[0, 4, 8],
+			[2, 4, 6],
+			[0, 3, 6],
+			[1, 4, 7],
+			[2, 5, 8]
+		];
+
+		for(var i=0; i<winLines.length; i++){
+			const [a,b,c] = winLines[i];
+			if(squares[a]&&squares[a]===squares[b]&&squares[a]===squares[c]) {
+				let reValue = {
+					'wValue': squares[a],
+					'a': a,
+					'b': b,
+					'c': c
+				}
+				return reValue;
+			}
+		}
+
+		return null;
+	}
+	</script>
+</body>
+</html>
